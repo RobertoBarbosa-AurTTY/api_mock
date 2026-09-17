@@ -1,0 +1,4 @@
+.git
+*.md
+render.yaml
+.env

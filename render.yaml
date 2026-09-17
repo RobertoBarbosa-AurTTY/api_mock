@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: pretreino-mock-api
+    runtime: docker
+    dockerfilePath: ./mock-api/Dockerfile
+    dockerContext: ./mock-api
+    healthCheckPath: /health
+    envVars:
+      - key: WEBHOOK_SECRET
+        sync: false

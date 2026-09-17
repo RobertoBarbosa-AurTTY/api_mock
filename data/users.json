@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "João Silva",
+    "email": "joao@email.com",
+    "role": "Desenvolvedor"
+  },
+  {
+    "id": 2,
+    "name": "Maria Santos",
+    "email": "maria@email.com",
+    "role": "Designer"
+  },
+  {
+    "id": 3,
+    "name": "Pedro Oliveira",
+    "email": "pedro@email.com",
+    "role": "Gerente"
+  }
+]

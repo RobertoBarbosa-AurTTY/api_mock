@@ -1,0 +1,47 @@
+[
+  {
+    "name": "response_time",
+    "value": 120,
+    "timestamp": "2024-01-20T10:00:00Z",
+    "tags": {
+      "route": "/api/users",
+      "method": "GET"
+    }
+  },
+  {
+    "name": "response_time",
+    "value": 85,
+    "timestamp": "2024-01-20T10:01:00Z",
+    "tags": {
+      "route": "/api/users",
+      "method": "GET"
+    }
+  },
+  {
+    "name": "response_time",
+    "value": 250,
+    "timestamp": "2024-01-20T10:02:00Z",
+    "tags": {
+      "route": "/api/orders",
+      "method": "POST"
+    }
+  },
+  {
+    "name": "error",
+    "value": 1,
+    "timestamp": "2024-01-20T10:03:00Z",
+    "tags": {
+      "type": "timeout",
+      "route": "/api/users"
+    }
+  },
+  {
+    "name": "response_time",
+    "value": 95,
+    "timestamp": "2024-01-20T10:04:00Z",
+    "tags": {
+      "route": "/api/products",
+      "method": "GET"
+    }
+  }
+]
