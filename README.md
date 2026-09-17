@@ -8,6 +8,37 @@ API mock para os desafios de backend do Pretreino, construída com Deno e sem de
 - **Health check:** https://api-mock-98te.onrender.com/health
 - **Raiz:** https://api-mock-98te.onrender.com/ (lista de endpoints e links)
 
+## Autenticação
+
+Todos os endpoints `/api/*` exigem um token de acesso no header `Authorization: Bearer <token>`. Obtenha o token fazendo login com um dos usuários de seed.
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| POST | `/api/auth/login` | Valida e-mail e senha e retorna o token |
+| GET | `/api/auth/me` | Retorna o usuário autenticado |
+| POST | `/api/auth/logout` | Invalida o token atual |
+
+Credenciais de seed (todas com senha `123456`):
+
+| E-mail | Senha |
+| --- | --- |
+| `joao@email.com` | `123456` |
+| `maria@email.com` | `123456` |
+| `pedro@email.com` | `123456` |
+
+```bash
+# 1. Login
+curl -X POST https://api-mock-98te.onrender.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "joao@email.com", "password": "123456"}'
+
+# 2. Usar o token retornado
+curl https://api-mock-98te.onrender.com/api/clientes \
+  -H "Authorization: Bearer <SEU_TOKEN>"
+```
+
+> Rotas públicas (sem token): `GET /`, `GET /health`, `GET /docs`, `GET /swagger` e `GET /openapi.json`.
+
 ## Endpoints
 
 Todos sob `/api`, com aliases em português e inglês (`clientes`/`clients`, `usuarios`/`users`, `produtos`/`products`, `metricas`/`metrics`).
@@ -87,6 +118,7 @@ curl -X POST https://api-mock-98te.onrender.com/api/webhooks \
 | `PORT` | `8080` | Porta HTTP (definida automaticamente pelo Render) |
 | `HOST` | `0.0.0.0` | Endereço de bind |
 | `WEBHOOK_SECRET` | `your_secret_here` | Assinatura esperada em `X-Webhook-Signature` |
+| `TOKEN_TTL_HOURS` | `24` | Validade do token de autenticação em horas |
 | `MOCK_FAILURE_RATE` | `0` | Probabilidade (0..1) de retornar erro `500` simulado |
 | `MOCK_DELAY_MS` | `0` | Latência artificial em ms para rotas `/api/*` |
 

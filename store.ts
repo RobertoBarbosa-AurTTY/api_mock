@@ -20,6 +20,7 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  password?: string;
 }
 
 export interface Product {
@@ -181,6 +182,12 @@ export function addUser(input: Omit<User, "id"> & { id?: number }): User {
 
 export function findUser(id: number): User | undefined {
   return store.users.find((user) => user.id === id);
+}
+
+export function findUserByEmail(email: string): User | undefined {
+  return store.users.find(
+    (user) => user.email.toLowerCase() === email.toLowerCase(),
+  );
 }
 
 export function updateUser(

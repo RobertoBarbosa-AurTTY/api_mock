@@ -11,6 +11,7 @@
  * - PORT             HTTP port (default 8080, automatically set by Render)
  * - HOST             Bind address (default 0.0.0.0)
  * - WEBHOOK_SECRET   Expected X-Webhook-Signature (default "your_secret_here")
+ * - TOKEN_TTL_HOURS  Logged-in session lifetime in hours (default 24)
  * - MOCK_FAILURE_RATE Probability (0..1) of returning a simulated 500 error
  * - MOCK_DELAY_MS    Artificial latency in milliseconds for /api/* requests
  */
@@ -25,6 +26,7 @@ import {
   findClient,
   findProduct,
   findUser,
+  findUserByEmail,
   loadStore,
   removeClient,
   removeProduct,
@@ -49,6 +51,8 @@ const HOST = Deno.env.get("HOST") ?? "0.0.0.0";
 const WEBHOOK_SECRET = Deno.env.get("WEBHOOK_SECRET") ?? "your_secret_here";
 const FAILURE_RATE = Number(Deno.env.get("MOCK_FAILURE_RATE") ?? "0");
 const DELAY_MS = Number(Deno.env.get("MOCK_DELAY_MS") ?? "0");
+const TOKEN_TTL_MS = Number(Deno.env.get("TOKEN_TTL_HOURS") ?? "24") * 60 * 60 *
+  1000;
 const STARTED_AT = new Date();
 
 const CORS_HEADERS: Record<string, string> = {
@@ -79,6 +83,9 @@ interface ApiRoute {
 }
 
 const API_ROUTES = [
+  "POST   /api/auth/login",
+  "GET    /api/auth/me",
+  "POST   /api/auth/logout",
   "GET    /api/clientes",
   "GET    /api/clientes/:id",
   "POST   /api/clientes",
@@ -102,6 +109,46 @@ const API_ROUTES = [
   "POST   /api/emails",
   "POST   /api/webhooks",
 ];
+
+interface Session {
+  userId: number;
+  issuedAt: number;
+  expiresAt: number;
+}
+
+const sessions = new Map<string, Session>();
+
+function generateToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function publicUser(user: User): Omit<User, "password"> {
+  const { password: _password, ...rest } = user;
+  return rest;
+}
+
+function sessionUser(req: Request): Session | null {
+  const header = req.headers.get("Authorization");
+  if (!header?.startsWith("Bearer ")) return null;
+  const token = header.slice("Bearer ".length).trim();
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (Date.now() > session.expiresAt) {
+    sessions.delete(token);
+    return null;
+  }
+  return session;
+}
+
+function sessionToken(req: Request): string | null {
+  const header = req.headers.get("Authorization");
+  if (!header?.startsWith("Bearer ")) return null;
+  const token = header.slice("Bearer ".length).trim();
+  return token || null;
+}
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data, null, 2), {
@@ -211,7 +258,7 @@ function listResource(resource: Resource, url: URL): Response {
       return json(data);
     }
     case "users":
-      return json(store.users);
+      return json(store.users.map(publicUser));
     case "products":
       return json(store.products);
     case "metrics": {
@@ -246,7 +293,11 @@ async function createResource(
       const email = str(body.email);
       if (!name || !email) return fail("name and email are required", 422);
       const role = str(body.role) ?? "user";
-      return json(addUser({ name, email, role }), 201);
+      const password = str(body.password);
+      return json(
+        publicUser(addUser({ name, email, role, password })),
+        201,
+      );
     }
     case "products": {
       const name = str(body.name);
@@ -280,7 +331,7 @@ function getOne(resource: Resource, id: string): Response {
     case "users": {
       const numeric = parseId(id);
       const user = numeric === null ? undefined : findUser(numeric);
-      return user ? json(user) : fail("User not found", 404);
+      return user ? json(publicUser(user)) : fail("User not found", 404);
     }
     case "products": {
       const numeric = parseId(id);
@@ -314,9 +365,14 @@ async function updateResource(
     case "users": {
       const numeric = parseId(id);
       if (numeric === null) return fail("Invalid id", 400);
-      const patch = pick<Omit<User, "id">>(body, ["name", "email", "role"]);
+      const patch = pick<Omit<User, "id">>(body, [
+        "name",
+        "email",
+        "role",
+        "password",
+      ]);
       const updated = updateUser(numeric, patch);
-      return updated ? json(updated) : fail("User not found", 404);
+      return updated ? json(publicUser(updated)) : fail("User not found", 404);
     }
     case "products": {
       const numeric = parseId(id);
@@ -445,7 +501,56 @@ async function route(req: Request): Promise<Response> {
     });
   }
 
+  if (pathname === "/api/auth/login") {
+    if (method !== "POST") return fail("Method not allowed", 405);
+    const body = await readBody<{ email?: string; password?: string }>(req);
+    const email = str(body?.email);
+    const password = str(body?.password);
+    if (!email || !password) {
+      return fail("email and password are required", 422);
+    }
+    const user = findUserByEmail(email);
+    if (!user || !user.password || user.password !== password) {
+      return fail("Invalid credentials", 401);
+    }
+    const token = generateToken();
+    const now = Date.now();
+    sessions.set(token, {
+      userId: user.id,
+      issuedAt: now,
+      expiresAt: now + TOKEN_TTL_MS,
+    });
+    return json({
+      token,
+      tokenType: "Bearer",
+      expiresAt: new Date(now + TOKEN_TTL_MS).toISOString(),
+      user: publicUser(user),
+    });
+  }
+
+  if (pathname === "/api/auth/me") {
+    if (method !== "GET") return fail("Method not allowed", 405);
+    const session = sessionUser(req);
+    if (!session) return fail("Unauthorized", 401);
+    const user = findUser(session.userId);
+    if (!user) return fail("User not found", 404);
+    return json({
+      ...publicUser(user),
+      loginAt: new Date(session.issuedAt).toISOString(),
+    });
+  }
+
+  if (pathname === "/api/auth/logout") {
+    if (method !== "POST") return fail("Method not allowed", 405);
+    const token = sessionToken(req);
+    if (!token || !sessions.has(token)) return fail("Unauthorized", 401);
+    sessions.delete(token);
+    return json({ success: true });
+  }
+
   if (pathname.startsWith("/api/")) {
+    const session = sessionUser(req);
+    if (!session) return fail("Unauthorized", 401);
     const apiRoute = resolveApi(pathname);
     if (!apiRoute) return fail("Route not found", 404);
     const simulated = await simulate(url);

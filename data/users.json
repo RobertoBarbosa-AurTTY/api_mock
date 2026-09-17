@@ -3,18 +3,21 @@
     "id": 1,
     "name": "João Silva",
     "email": "joao@email.com",
-    "role": "Desenvolvedor"
+    "role": "Desenvolvedor",
+    "password": "123456"
   },
   {
     "id": 2,
     "name": "Maria Santos",
     "email": "maria@email.com",
-    "role": "Designer"
+    "role": "Designer",
+    "password": "123456"
   },
   {
     "id": 3,
     "name": "Pedro Oliveira",
     "email": "pedro@email.com",
-    "role": "Gerente"
+    "role": "Gerente",
+    "password": "123456"
   }
 ]

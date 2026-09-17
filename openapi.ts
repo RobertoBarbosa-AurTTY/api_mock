@@ -51,6 +51,7 @@ export const openApiSpec = {
   ],
   tags: [
     { name: "Health", description: "Service status" },
+    { name: "Auth", description: "Login and session management" },
     { name: "Customers", description: "Challenge 01 - Customers API" },
     { name: "Users", description: "Challenge 08 - External API cache" },
     { name: "Products", description: "Challenge 08 - External API cache" },
@@ -58,12 +59,61 @@ export const openApiSpec = {
     { name: "Emails", description: "Challenge 03 - Email notification" },
     { name: "Webhooks", description: "Challenge 06 - Payment webhook" },
   ],
+  security: [{ bearerAuth: [] }],
   paths: {
+    "/api/auth/login": {
+      post: {
+        tags: ["Auth"],
+        summary: "Login and get a bearer token",
+        description:
+          "Validates email and password against the seeded users and " +
+          "returns an opaque bearer token. Use it in the `Authorization: " +
+          "Bearer <token>` header on all other `/api/*` endpoints. " +
+          "Seed credentials: `joao@email.com` / `123456`.",
+        operationId: "login",
+        security: [],
+        requestBody: jsonBody({ $ref: "#/components/schemas/LoginInput" }),
+        responses: {
+          "200": jsonResponse(
+            { $ref: "#/components/schemas/LoginResult" },
+            "Login succeeded",
+          ),
+          "401": errorResponse("Invalid credentials"),
+          "422": errorResponse("Invalid payload"),
+        },
+      },
+    },
+    "/api/auth/me": {
+      get: {
+        tags: ["Auth"],
+        summary: "Current authenticated user",
+        operationId: "getMe",
+        responses: {
+          "200": jsonResponse(userRef, "Authenticated user"),
+          "401": errorResponse("Missing or invalid token"),
+        },
+      },
+    },
+    "/api/auth/logout": {
+      post: {
+        tags: ["Auth"],
+        summary: "Logout and invalidate the current token",
+        operationId: "logout",
+        responses: {
+          "200": jsonResponse(
+            { $ref: "#/components/schemas/LogoutResult" },
+            "Logged out",
+          ),
+          "401": errorResponse("Missing or invalid token"),
+        },
+      },
+    },
     "/health": {
       get: {
         tags: ["Health"],
         summary: "Health check",
         operationId: "getHealth",
+        security: [],
         responses: {
           "200": jsonResponse(
             { $ref: "#/components/schemas/Health" },
@@ -91,6 +141,7 @@ export const openApiSpec = {
         ],
         responses: {
           "200": listResponse(clientRef, "Customer list"),
+          "401": errorResponse("Missing or invalid token"),
           "500": errorResponse("Simulated failure"),
         },
       },
@@ -103,6 +154,7 @@ export const openApiSpec = {
         responses: {
           "201": jsonResponse(clientRef, "Customer created"),
           "422": errorResponse("Invalid payload"),
+          "401": errorResponse("Missing or invalid token"),
           "500": errorResponse("Simulated failure"),
         },
       },
@@ -115,6 +167,7 @@ export const openApiSpec = {
         operationId: "getClient",
         responses: {
           "200": jsonResponse(clientRef, "Customer found"),
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("Customer not found"),
         },
       },
@@ -129,6 +182,7 @@ export const openApiSpec = {
         ),
         responses: {
           "200": jsonResponse(clientRef, "Customer updated"),
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("Customer not found"),
           "422": errorResponse("Invalid payload"),
         },
@@ -143,6 +197,7 @@ export const openApiSpec = {
         ),
         responses: {
           "200": jsonResponse(clientRef, "Customer updated"),
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("Customer not found"),
           "422": errorResponse("Invalid payload"),
         },
@@ -153,6 +208,7 @@ export const openApiSpec = {
         operationId: "deleteClient",
         responses: {
           "204": { description: "Customer deleted" },
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("Customer not found"),
         },
       },
@@ -166,6 +222,7 @@ export const openApiSpec = {
         operationId: "listUsers",
         responses: {
           "200": listResponse(userRef, "User list"),
+          "401": errorResponse("Missing or invalid token"),
           "500": errorResponse("Simulated failure"),
         },
       },
@@ -178,6 +235,7 @@ export const openApiSpec = {
         responses: {
           "201": jsonResponse(userRef, "User created"),
           "422": errorResponse("Invalid payload"),
+          "401": errorResponse("Missing or invalid token"),
           "500": errorResponse("Simulated failure"),
         },
       },
@@ -190,6 +248,7 @@ export const openApiSpec = {
         operationId: "getUser",
         responses: {
           "200": jsonResponse(userRef, "User found"),
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("User not found"),
         },
       },
@@ -203,6 +262,7 @@ export const openApiSpec = {
         ),
         responses: {
           "200": jsonResponse(userRef, "User updated"),
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("User not found"),
           "422": errorResponse("Invalid payload"),
         },
@@ -217,6 +277,7 @@ export const openApiSpec = {
         ),
         responses: {
           "200": jsonResponse(userRef, "User updated"),
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("User not found"),
           "422": errorResponse("Invalid payload"),
         },
@@ -227,6 +288,7 @@ export const openApiSpec = {
         operationId: "deleteUser",
         responses: {
           "204": { description: "User deleted" },
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("User not found"),
         },
       },
@@ -240,6 +302,7 @@ export const openApiSpec = {
         operationId: "listProducts",
         responses: {
           "200": listResponse(productRef, "Product list"),
+          "401": errorResponse("Missing or invalid token"),
           "500": errorResponse("Simulated failure"),
         },
       },
@@ -252,6 +315,7 @@ export const openApiSpec = {
         responses: {
           "201": jsonResponse(productRef, "Product created"),
           "422": errorResponse("Invalid payload"),
+          "401": errorResponse("Missing or invalid token"),
           "500": errorResponse("Simulated failure"),
         },
       },
@@ -264,6 +328,7 @@ export const openApiSpec = {
         operationId: "getProduct",
         responses: {
           "200": jsonResponse(productRef, "Product found"),
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("Product not found"),
         },
       },
@@ -277,6 +342,7 @@ export const openApiSpec = {
         ),
         responses: {
           "200": jsonResponse(productRef, "Product updated"),
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("Product not found"),
           "422": errorResponse("Invalid payload"),
         },
@@ -291,6 +357,7 @@ export const openApiSpec = {
         ),
         responses: {
           "200": jsonResponse(productRef, "Product updated"),
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("Product not found"),
           "422": errorResponse("Invalid payload"),
         },
@@ -301,6 +368,7 @@ export const openApiSpec = {
         operationId: "deleteProduct",
         responses: {
           "204": { description: "Product deleted" },
+          "401": errorResponse("Missing or invalid token"),
           "404": errorResponse("Product not found"),
         },
       },
@@ -323,6 +391,7 @@ export const openApiSpec = {
         ],
         responses: {
           "200": listResponse(metricRef, "Metric list"),
+          "401": errorResponse("Missing or invalid token"),
           "500": errorResponse("Simulated failure"),
         },
       },
@@ -343,6 +412,7 @@ export const openApiSpec = {
         responses: {
           "201": jsonResponse(metricRef, "Metric registered"),
           "422": errorResponse("Invalid payload"),
+          "401": errorResponse("Missing or invalid token"),
           "500": errorResponse("Simulated failure"),
         },
       },
@@ -369,6 +439,7 @@ export const openApiSpec = {
             "Email accepted",
           ),
           "422": errorResponse("Invalid payload"),
+          "401": errorResponse("Missing or invalid token"),
           "500": errorResponse("Simulated failure"),
         },
       },
@@ -410,7 +481,42 @@ export const openApiSpec = {
     },
   },
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        description: "Opaque bearer token returned by `/api/auth/login`",
+      },
+    },
     schemas: {
+      LoginInput: {
+        type: "object",
+        required: ["email", "password"],
+        properties: {
+          email: { type: "string", format: "email", example: "joao@email.com" },
+          password: { type: "string", format: "password", example: "123456" },
+        },
+      },
+      LoginResult: {
+        type: "object",
+        required: ["token", "tokenType", "expiresAt", "user"],
+        properties: {
+          token: {
+            type: "string",
+            example: "b4d0d5f9e1b24c0d9c2d8d2f0a2f0b1c4d5e3f1a2b3c4d5e6f7a8b9c0",
+          },
+          tokenType: { type: "string", example: "Bearer" },
+          expiresAt: { type: "string", format: "date-time" },
+          user: { $ref: "#/components/schemas/User" },
+        },
+      },
+      LogoutResult: {
+        type: "object",
+        required: ["success"],
+        properties: {
+          success: { type: "boolean", example: true },
+        },
+      },
       Client: {
         type: "object",
         required: ["id", "name", "email", "status", "registrationDate"],
@@ -472,6 +578,14 @@ export const openApiSpec = {
             type: "string",
             example: "Desenvolvedor",
             description: 'Defaults to "user" when omitted',
+          },
+          password: {
+            type: "string",
+            format: "password",
+            example: "123456",
+            description:
+              "Optional. Used to authenticate via POST /api/auth/login. " +
+              "Never returned in responses.",
           },
         },
       },
